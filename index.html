@@ -7,7 +7,6 @@
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
         :root {
-            /* 라이트 모드 기본값 */
             --bg-color: #f5f6fa;
             --editor-bg: #ffffff;
             --sidebar-bg: #ffffff;
@@ -18,20 +17,20 @@
             --accent-green: #27ae60;
             --item-bg: #ffffff;
             --sidebar-width: 220px;
+            --ios-blue: #007aff;
         }
 
-        /* 아이폰 시스템 다크모드 감지 및 적용 */
         @media (prefers-color-scheme: dark) {
             :root {
-                --bg-color: #000000;       /* 진한 블랙 */
-                --editor-bg: #1c1c1e;      /* iOS 카드 색상 */
+                --bg-color: #000000;
+                --editor-bg: #1c1c1e;
                 --sidebar-bg: #1c1c1e;
                 --text-main: #ffffff;
                 --text-sub: #8e8e93;
                 --border-color: #38383a;
                 --primary-dark: #34495e;
-                --accent-green: #32d74b;   /* iOS 시스템 그린 */
-                --item-bg: #2c2c2e;        /* iOS 항목 배경 */
+                --accent-green: #32d74b;
+                --item-bg: #2c2c2e;
             }
         }
 
@@ -46,7 +45,6 @@
             transition: background-color 0.3s ease;
         }
 
-        /* 에디터 영역 */
         .editor-container {
             flex: 1;
             padding: 40px;
@@ -77,26 +75,39 @@
             padding: 15px 0; outline: none; background: transparent; color: var(--text-main);
         }
 
+        /* 수정한 에디터 스타일 (contenteditable div) */
         .notepad {
-            flex: 1; width: 100%; border: none; resize: none;
+            flex: 1; width: 100%; border: none; 
             font-size: 1.1rem; line-height: 1.8; outline: none;
             background: transparent; color: var(--text-main);
+            overflow-y: auto; white-space: pre-wrap; word-break: break-all;
         }
 
-        /* 버튼 그룹 */
+        /* placeholder 효과 */
+        .notepad:empty:before {
+            content: attr(data-placeholder);
+            color: var(--text-sub);
+            cursor: text;
+        }
+
+        /* 괄호 텍스트 스타일 */
+        .blue-text {
+            color: var(--ios-blue);
+            font-weight: 500;
+        }
+
         .btn-group {
             display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;
         }
 
         button { padding: 10px 16px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; }
         .btn-save { background: var(--primary-dark); color: white; }
-        .btn-cancel { background: #ff3b30; color: white; display: none; } /* iOS 시스템 레드 */
+        .btn-cancel { background: #ff3b30; color: white; display: none; }
         .btn-share-txt { background: #fee500; color: #3c1e1e; }
-        .btn-share-img { background: #007aff; color: white; } /* iOS 시스템 블루 */
+        .btn-share-img { background: #007aff; color: white; }
         
         .is-editing .btn-cancel { display: block; }
 
-        /* 사이드바 영역 */
         .sidebar { 
             width: var(--sidebar-width); 
             background-color: var(--sidebar-bg); 
@@ -116,7 +127,6 @@
         .memo-list { flex: 1; overflow-y: auto; padding: 8px; }
         .category-group { margin-bottom: 8px; border-bottom: 1px solid var(--border-color); }
         
-        /* 카테고리 헤더: 요청하신대로 글씨 키우고 볼드체 적용 */
         .category-header { 
             display: flex; 
             justify-content: space-between; 
@@ -134,7 +144,7 @@
             background: var(--item-bg); 
             border: 1px solid var(--border-color); 
             padding: 10px; 
-            border-radius: 10px; /* 아이폰 스타일 라운드 */
+            border-radius: 10px; 
             margin-top: 6px; 
             cursor: pointer; 
             position: relative; 
@@ -155,17 +165,17 @@
         
         .delete-btn { position: absolute; top: 8px; right: 8px; background: none; border: none; color: #ff3b30; cursor: pointer; font-size: 1.2rem; }
 
-        /* 모달 창 */
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; }
         .modal-content { background: var(--editor-bg); padding: 30px; border-radius: 16px; width: 320px; color: var(--text-main); }
 
-        /* 캡처용 숨김 박스 (공유용 이미지는 항상 라이트 스타일로 유지하는 것이 깔끔함) */
         #hidden-capture-box {
             position: absolute; left: -9999px; top: 0; width: 600px;
             background: white; padding: 40px; display: flex; flex-direction: column; box-sizing: border-box;
         }
         #hidden-title { font-size: 2.2rem; font-weight: bold; margin-bottom: 25px; line-height: 1.3; color: #000; word-break: break-all; }
         #hidden-content { font-size: 1.2rem; line-height: 1.8; white-space: pre-wrap; word-break: break-all; color: #333; }
+        /* 캡처 이미지에서도 파란색 유지 */
+        #hidden-content .blue-text { color: #007aff !important; }
     </style>
 </head>
 <body id="body-ctx">
@@ -177,7 +187,7 @@
         </div>
         
         <input type="text" id="memo-title" class="title-input" placeholder="제목을 입력하세요">
-        <textarea id="memo-content" class="notepad" placeholder="이곳에 내용을 기록하세요..."></textarea>
+        <div id="memo-content" class="notepad" contenteditable="true" data-placeholder="이곳에 내용을 기록하세요..."></div>
 
         <div class="btn-group">
             <button class="btn-share-txt" onclick="shareMemoText()">카톡(텍스트)</button>
@@ -219,12 +229,66 @@
     let openCategories = new Set();
     let lastUsedCategory = localStorage.getItem('last_used_category') || categories[0];
 
-    // 자동 저장 기능 (초안)
+    // 커서 위치 유지를 위한 변수
+    const editor = document.getElementById('memo-content');
+
+    // 실시간 파란색 처리 및 자동 저장
+    editor.addEventListener('input', function() {
+        applyBlueColor(this);
+        autoSaveDraft();
+    });
+
+    function applyBlueColor(el) {
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return;
+
+        // 커서 위치 계산
+        const range = selection.getRangeAt(0);
+        const preSelectionRange = range.cloneRange();
+        preSelectionRange.selectNodeContents(el);
+        preSelectionRange.setEnd(range.startContainer, range.startOffset);
+        const start = preSelectionRange.toString().length;
+
+        const content = el.innerText;
+        // 괄호 포함 내용을 파란색 span으로 교체
+        const highlighted = content.replace(/\(([^)]+)\)/g, '<span class="blue-text">($1)</span>');
+        
+        if (el.innerHTML !== highlighted) {
+            el.innerHTML = highlighted;
+            restoreCursor(el, start);
+        }
+    }
+
+    function restoreCursor(el, count) {
+        const range = document.createRange();
+        const sel = window.getSelection();
+        let charCount = 0;
+        let nodeStack = [el];
+        let node, found = false;
+
+        while (!found && (node = nodeStack.pop())) {
+            if (node.nodeType === 3) {
+                const nextCharCount = charCount + node.length;
+                if (count <= nextCharCount) {
+                    range.setStart(node, count - charCount);
+                    range.collapse(true);
+                    found = true;
+                }
+                charCount = nextCharCount;
+            } else {
+                let i = node.childNodes.length;
+                while (i--) nodeStack.push(node.childNodes[i]);
+            }
+        }
+        sel.removeAllRanges();
+        sel.addRange(range);
+    }
+
     function autoSaveDraft() {
         if (editingId) return;
         const draft = {
             title: document.getElementById('memo-title').value,
-            content: document.getElementById('memo-content').value,
+            content: editor.innerText,
             category: document.getElementById('memo-category').value
         };
         localStorage.setItem('memo_draft_v2', JSON.stringify(draft));
@@ -237,7 +301,8 @@
             if (draft.title || draft.content) {
                 if (confirm("작성 중이던 초안이 있습니다. 불러오시겠습니까?")) {
                     document.getElementById('memo-title').value = draft.title || '';
-                    document.getElementById('memo-content').value = draft.content || '';
+                    editor.innerText = draft.content || '';
+                    applyBlueColor(editor);
                     document.getElementById('memo-category').value = categories.includes(draft.category) ? draft.category : categories[0];
                 } else {
                     localStorage.removeItem('memo_draft_v2');
@@ -246,13 +311,12 @@
         }
     }
 
-    ['memo-title', 'memo-content', 'memo-category'].forEach(id => {
-        document.getElementById(id).addEventListener('input', autoSaveDraft);
-    });
+    document.getElementById('memo-title').addEventListener('input', autoSaveDraft);
+    document.getElementById('memo-category').addEventListener('change', autoSaveDraft);
 
     async function shareMemoText() {
         const title = document.getElementById('memo-title').value.trim();
-        const content = document.getElementById('memo-content').value.trim();
+        const content = editor.innerText.trim();
         if (!content) return alert("내용이 없습니다.");
         const fullText = title ? `[${title}]\n${content}` : content;
         if (navigator.share) await navigator.share({ title: '메모 공유', text: fullText });
@@ -261,11 +325,14 @@
 
     async function shareMemoImage() {
         const titleVal = document.getElementById('memo-title').value.trim();
-        const contentVal = document.getElementById('memo-content').value.trim();
-        if(!contentVal) return alert("공유할 내용이 없습니다.");
+        const contentHTML = editor.innerHTML; // 서식 유지를 위해 innerHTML 사용
+        const contentText = editor.innerText.trim();
+        if(!contentText) return alert("공유할 내용이 없습니다.");
+        
         const captureBox = document.getElementById('hidden-capture-box');
         document.getElementById('hidden-title').innerText = titleVal || "제목 없음";
-        document.getElementById('hidden-content').innerText = contentVal;
+        document.getElementById('hidden-content').innerHTML = contentHTML;
+        
         try {
             const canvas = await html2canvas(captureBox, { backgroundColor: "#ffffff", scale: 2, logging: false, useCORS: true });
             const imageData = canvas.toDataURL("image/png");
@@ -349,8 +416,8 @@
     function saveMemo() {
         const cat = document.getElementById('memo-category').value;
         const title = document.getElementById('memo-title').value.trim();
-        const content = document.getElementById('memo-content').value;
-        if(!title && !content) return alert("내용을 입력해주세요.");
+        const content = editor.innerText;
+        if(!title && !content.trim()) return alert("내용을 입력해주세요.");
         
         const dateStr = new Date().toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
         
@@ -362,7 +429,7 @@
         
         localStorage.setItem('memos_persistent', JSON.stringify(memos));
         localStorage.removeItem('memo_draft_v2');
-        cancelEdit(true); // 입력 필드 초기화
+        cancelEdit(true);
         updateCategoryUI();
     }
 
@@ -372,7 +439,8 @@
             editingId = id;
             document.getElementById('memo-category').value = m.category;
             document.getElementById('memo-title').value = m.title;
-            document.getElementById('memo-content').value = m.content;
+            editor.innerText = m.content;
+            applyBlueColor(editor); // 편집 시작 시 색상 적용
             document.getElementById('body-ctx').classList.add('is-editing');
             render();
         }
@@ -382,7 +450,7 @@
         if (force || confirm("작성 중인 내용을 취소하시겠습니까?")) {
             editingId = null;
             document.getElementById('memo-title').value = '';
-            document.getElementById('memo-content').value = '';
+            editor.innerText = '';
             document.getElementById('body-ctx').classList.remove('is-editing');
             localStorage.removeItem('memo_draft_v2');
             render();
