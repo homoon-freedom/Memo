@@ -18,7 +18,7 @@
             --accent-green: #27ae60;
             --item-bg: #ffffff;
             --sidebar-width: 220px;
-            --ios-blue: #007aff;
+            --ios-blue: #82caff;
             --ios-white: #ffffff;
         }
 
@@ -109,10 +109,10 @@
 #hidden-content .inner-bracket { color: #aaaaaa !important; }
 
         /* [] 대괄호: 파란색 + 더 크고 굵게 */
-.bold-black-text {
-    color: var(--ios-white);
-    font-weight: 900;      /* 최대 굵기 */
-    font-size: 1.2rem;    /* 기본보다 20% 크게 */
+.bold-white-text {
+    color: var(--ios-white); /* 흰색*/
+    font-weight: 900;
+    font-size: 1.2rem;
     display: inline-block;
 }
 
@@ -195,8 +195,8 @@
         #hidden-title { font-size: 1.5rem; font-weight: bold; margin-bottom: 25px; line-height: 1.3; color: #000; word-break: break-all; }
         #hidden-content { font-size: 1.0rem; line-height: 1.6; white-space: pre-wrap; word-break: break-all; color: #333; }
         /* 캡처 이미지에서도 파란색 유지 */
-        #hidden-content .blue-text { color: #007aff !important; }
-#hidden-content .bold-black-text { 
+        #hidden-content .blue-text { color: #82caff !important; }
+#hidden-content .bold-white-text { 
     color: #ffffff !important; 
     font-weight: bold !important; 
     font-size: 1.2rem !important; 
@@ -257,16 +257,31 @@
     // 커서 위치 유지를 위한 변수
     const editor = document.getElementById('memo-content');
 
-    // 실시간 파란색 처리 및 자동 저장
-    editor.addEventListener('input', function() {
+// 한글 조합 중인지 확인하는 변수
+let isComposing = false;
+
+editor.addEventListener('compositionstart', () => { isComposing = true; });
+editor.addEventListener('compositionend', (e) => { 
+    isComposing = false; 
+    applyBlueColor(e.target); // 조합이 끝나면 색상 적용
+});
+
+editor.addEventListener('input', function(e) {
+    if (isComposing) return; // 한글 입력 중에는 실행하지 않음
+    
+    // 마지막 입력이 공백이거나 괄호가 닫혔을 때만 적용하여 입력 흐름 방해 최소화
+    const lastChar = e.data;
+    if (!lastChar || lastChar === ' ' || lastChar === ')' || lastChar === ']') {
         applyBlueColor(this);
-        autoSaveDraft();
-    });
+    }
+    autoSaveDraft();
+});
 
 function applyBlueColor(el) {
     const selection = window.getSelection();
     if (!selection.rangeCount) return;
 
+    // 현재 커서 위치 저장
     const range = selection.getRangeAt(0);
     const preSelectionRange = range.cloneRange();
     preSelectionRange.selectNodeContents(el);
@@ -275,16 +290,15 @@ function applyBlueColor(el) {
 
     const text = el.innerText;
     let result = "";
-    let stack = []; // 괄호 깊이 추적용
+    let stack = [];
 
+    // 중첩 괄호 분석 및 HTML 생성
     for (let i = 0; i < text.length; i++) {
         let char = text[i];
-
         if (char === '(' || char === '[') {
             stack.push(char);
-            // stack.length가 1이면 가장 바깥, 2 이상이면 안쪽 괄호
             let className = (stack.length === 1) ? 
-                            (char === '(' ? "blue-text" : "bold-black-text") : 
+                            (char === '(' ? "blue-text" : "bold-white-text") : 
                             "inner-bracket";
             result += `<span class="${className}">${char}`;
         } 
@@ -293,7 +307,7 @@ function applyBlueColor(el) {
                 result += `${char}</span>`;
                 stack.pop();
             } else {
-                result += char; // 짝이 맞지 않는 닫는 괄호는 일반 텍스트 처리
+                result += char;
             }
         } 
         else {
@@ -301,6 +315,7 @@ function applyBlueColor(el) {
         }
     }
 
+    // 내용이 변했을 때만 innerHTML 업데이트 (불필요한 리렌더링 방지)
     if (el.innerHTML !== result) {
         el.innerHTML = result;
         restoreCursor(el, start);
