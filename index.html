@@ -19,6 +19,7 @@
             --item-bg: #ffffff;
             --sidebar-width: 220px;
             --ios-blue: #007aff;
+            --ios-black: #000000;
         }
 
         @media (prefers-color-scheme: dark) {
@@ -96,6 +97,14 @@
             color: var(--ios-blue);
             font-weight: 500;
         }
+
+        /* [] 대괄호: 파란색 + 더 크고 굵게 */
+.bold-blue-text {
+    color: var(--ios-blue);
+    font-weight: 900;      /* 최대 굵기 */
+    font-size: 1.2rem;    /* 기본보다 20% 크게 */
+    display: inline-block;
+}
 
         .btn-group {
             display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;
@@ -177,6 +186,11 @@
         #hidden-content { font-size: 1.0rem; line-height: 1.6; white-space: pre-wrap; word-break: break-all; color: #333; }
         /* 캡처 이미지에서도 파란색 유지 */
         #hidden-content .blue-text { color: #007aff !important; }
+#hidden-content .bold-blue-text { 
+    color: #000000 !important; 
+    font-weight: bold !important; 
+    font-size: 1.2rem !important; 
+}
     </style>
 </head>
 <body id="body-ctx">
@@ -239,26 +253,29 @@
         autoSaveDraft();
     });
 
-    function applyBlueColor(el) {
-        const selection = window.getSelection();
-        if (!selection.rangeCount) return;
+function applyBlueColor(el) {
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return;
 
-        // 커서 위치 계산
-        const range = selection.getRangeAt(0);
-        const preSelectionRange = range.cloneRange();
-        preSelectionRange.selectNodeContents(el);
-        preSelectionRange.setEnd(range.startContainer, range.startOffset);
-        const start = preSelectionRange.toString().length;
+    const range = selection.getRangeAt(0);
+    const preSelectionRange = range.cloneRange();
+    preSelectionRange.selectNodeContents(el);
+    preSelectionRange.setEnd(range.startContainer, range.startOffset);
+    const start = preSelectionRange.toString().length;
 
-        const content = el.innerText;
-        // 괄호 포함 내용을 파란색 span으로 교체
-        const highlighted = content.replace(/\(([^)]+)\)/g, '<span class="blue-text">($1)</span>');
-        
-        if (el.innerHTML !== highlighted) {
-            el.innerHTML = highlighted;
-            restoreCursor(el, start);
-        }
+    const content = el.innerText;
+
+    // 1단계: 소괄호 () 처리 -> .blue-text
+    // 2단계: 대괄호 [] 처리 -> .bold-blue-text
+    let highlighted = content
+        .replace(/\(([^)]+)\)/g, '<span class="blue-text">($1)</span>')
+        .replace(/\[([^\]]+)\]/g, '<span class="bold-blue-text">[$1]</span>');
+    
+    if (el.innerHTML !== highlighted) {
+        el.innerHTML = highlighted;
+        restoreCursor(el, start);
     }
+}
 
     function restoreCursor(el, count) {
         const range = document.createRange();
