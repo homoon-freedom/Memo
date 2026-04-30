@@ -19,7 +19,7 @@
             --item-bg: #ffffff;
             --sidebar-width: 220px;
             --ios-blue: #007aff;
-            --ios-black: #000000;
+            --ios-white: #ffffff;
         }
 
         @media (prefers-color-scheme: dark) {
@@ -100,17 +100,17 @@
 
         /* 안쪽 괄호: 진회색 */
 .inner-bracket {
-    color: #555555; /* Dark Gray */
+    color: #d1d1d6; /* Dark Gray */
     font-weight: normal;
     font-size: 0.95rem;
 }
 
 /* 캡처용 스타일에도 추가 */
-#hidden-content .inner-bracket { color: #555555 !important; }
+#hidden-content .inner-bracket { color: #aaaaaa !important; }
 
         /* [] 대괄호: 파란색 + 더 크고 굵게 */
 .bold-blue-text {
-    color: var(--ios-black);
+    color: var(--ios-white);
     font-weight: 900;      /* 최대 굵기 */
     font-size: 1.2rem;    /* 기본보다 20% 크게 */
     display: inline-block;
@@ -197,7 +197,7 @@
         /* 캡처 이미지에서도 파란색 유지 */
         #hidden-content .blue-text { color: #007aff !important; }
 #hidden-content .bold-blue-text { 
-    color: #000000 !important; 
+    color: #ffffff !important; 
     font-weight: bold !important; 
     font-size: 1.2rem !important; 
 }
