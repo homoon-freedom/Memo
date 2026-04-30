@@ -98,6 +98,16 @@
             font-weight: 500;
         }
 
+        /* 안쪽 괄호: 진회색 */
+.inner-bracket {
+    color: #555555; /* Dark Gray */
+    font-weight: normal;
+    font-size: 0.95rem;
+}
+
+/* 캡처용 스타일에도 추가 */
+#hidden-content .inner-bracket { color: #555555 !important; }
+
         /* [] 대괄호: 파란색 + 더 크고 굵게 */
 .bold-blue-text {
     color: var(--ios-black);
@@ -263,16 +273,36 @@ function applyBlueColor(el) {
     preSelectionRange.setEnd(range.startContainer, range.startOffset);
     const start = preSelectionRange.toString().length;
 
-    const content = el.innerText;
+    const text = el.innerText;
+    let result = "";
+    let stack = []; // 괄호 깊이 추적용
 
-    // 1단계: 소괄호 () 처리 -> .blue-text
-    // 2단계: 대괄호 [] 처리 -> .bold-blue-text
-    let highlighted = content
-        .replace(/\(([^)]+)\)/g, '<span class="blue-text">($1)</span>')
-        .replace(/\[([^\]]+)\]/g, '<span class="bold-blue-text">[$1]</span>');
-    
-    if (el.innerHTML !== highlighted) {
-        el.innerHTML = highlighted;
+    for (let i = 0; i < text.length; i++) {
+        let char = text[i];
+
+        if (char === '(' || char === '[') {
+            stack.push(char);
+            // stack.length가 1이면 가장 바깥, 2 이상이면 안쪽 괄호
+            let className = (stack.length === 1) ? 
+                            (char === '(' ? "blue-text" : "bold-blue-text") : 
+                            "inner-bracket";
+            result += `<span class="${className}">${char}`;
+        } 
+        else if (char === ')' || char === ']') {
+            if (stack.length > 0) {
+                result += `${char}</span>`;
+                stack.pop();
+            } else {
+                result += char; // 짝이 맞지 않는 닫는 괄호는 일반 텍스트 처리
+            }
+        } 
+        else {
+            result += char;
+        }
+    }
+
+    if (el.innerHTML !== result) {
+        el.innerHTML = result;
         restoreCursor(el, start);
     }
 }
