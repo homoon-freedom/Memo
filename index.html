@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>정리</title>
+    <!-- html2canvas 최신 버전 사용 권장 -->
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
         :root {
@@ -18,7 +19,7 @@
             --accent-green: #27ae60;
             --item-bg: #ffffff;
             --sidebar-width: 260px;
-            --ios-blue: #82caff;
+            --ios-blue: #007aff; /* 라이트모드 가독성을 위해 약간 진한 파랑으로 변경 */
             --ios-white: #ffffff;
         }
 
@@ -33,6 +34,7 @@
                 --primary-dark: #34495e;
                 --accent-green: #32d74b;
                 --item-bg: #2c2c2e;
+                --ios-blue: #82caff; /* 다크모드용 연한 파랑 */
             }
         }
 
@@ -63,6 +65,7 @@
             border-right: 1px solid var(--border-color);
             transition: background-color 0.3s ease;
             position: relative;
+            box-sizing: border-box; /* 캡처시 패딩 계산 정확도를 위해 추가 */
         }
 
         .category-management {
@@ -73,6 +76,7 @@
         .category-select {
             padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color);
             font-size: 0.9rem; outline: none; background-color: var(--item-bg); color: var(--text-main);
+            -webkit-appearance: none; /* 아이폰 기본 스타일 제거 */
         }
 
         .btn-manage-cat {
@@ -93,6 +97,11 @@
             overflow-y: auto; white-space: pre-wrap; word-break: break-all;
         }
 
+        /* 캡처시 스크롤바 숨기기 위해 추가 */
+        .notepad.capturing {
+            overflow: hidden !important;
+        }
+
         .notepad:empty:before {
             content: attr(data-placeholder);
             color: var(--text-sub);
@@ -101,10 +110,17 @@
 
         .blue-text { color: var(--ios-blue); font-weight: 500; }
         .inner-bracket { color: #d1d1d6; font-weight: normal; font-size: 0.95rem; }
-        .bold-white-text { color: var(--ios-white); font-weight: 900; font-size: 1.2rem; display: inline-block; }
+        /* 라이트 모드일 때 대괄호 안 글씨색 검정으로 변경 (가독성) */
+        .bold-white-text { color: #000000; font-weight: 900; font-size: 1.2rem; display: inline-block; }
+        
+        /* 다크 모드일 때만 흰색으로 */
+        @media (prefers-color-scheme: dark) {
+            .bold-white-text { color: var(--ios-white); }
+        }
 
         .btn-group {
             display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;
+            flex-wrap: wrap; /* 화면 작을 때 줄바꿈 */
         }
 
         button { padding: 10px 16px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; }
@@ -207,25 +223,28 @@
         .delete-btn { position: absolute; top: 8px; right: 8px; background: none; border: none; color: #ff3b30; cursor: pointer; font-size: 1.2rem; }
 
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; }
-        .modal-content { background: var(--editor-bg); padding: 30px; border-radius: 16px; width: 320px; color: var(--text-main); }
+        .modal-content { background: var(--editor-bg); padding: 30px; border-radius: 16px; width: 320px; color: var(--text-main); max-width: 90%; }
 
-        #hidden-capture-box {
-            position: absolute; left: -9999px; top: 0; width: 800px;
-            background: white; padding: 40px; display: flex; flex-direction: column; box-sizing: border-box;
+        /* 워터마크 스타일 추가 */
+        .capture-watermark {
+            display: none; /* 평소엔 숨김 */
+            margin-top: 30px; 
+            border-top: 1px solid var(--border-color); 
+            padding-top: 10px; 
+            color: var(--text-sub); 
+            font-size: 0.8rem;
+            text-align: right;
         }
-        #hidden-title { font-size: 1.5rem; font-weight: bold; margin-bottom: 25px; line-height: 1.3; color: #000; word-break: break-all; }
-        #hidden-content { font-size: 1.0rem; line-height: 1.6; white-space: pre-wrap; word-break: break-all; color: #333; }
-        #hidden-content .blue-text { color: #82caff !important; }
-        #hidden-content .bold-white-text { color: #ffffff !important; font-weight: bold !important; font-size: 1.2rem !important; }
     </style>
 </head>
 
 <body id="body-ctx">
 
-    <div class="editor-container">
+    <!-- 이 컨테이너 전체를 캡처합니다 -->
+    <div class="editor-container" id="capture-area">
         <div class="btn-floating-open" onclick="toggleSidebar(false)" title="목록 열기">📂</div>
 
-        <div class="category-management">
+        <div class="category-management" data-html2canvas-ignore="true">
             <select id="memo-category" class="category-select" onchange="saveLastUsedCategory(this.value)"></select>
             <button class="btn-manage-cat" onclick="openModal()">⚙️ 카테고리 편집</button>
         </div>
@@ -233,7 +252,12 @@
         <input type="text" id="memo-title" class="title-input" placeholder="제목을 입력하세요">
         <div id="memo-content" class="notepad" contenteditable="true" data-placeholder="이곳에 내용을 기록하세요..."></div>
 
-        <div class="btn-group">
+        <!-- 캡처시에만 보여질 워터마크 -->
+        <div class="capture-watermark" id="capture-watermark">
+            My Notepad Pro
+        </div>
+
+        <div class="btn-group" data-html2canvas-ignore="true">
             <button class="btn-share-txt" onclick="shareMemoText()">카톡(텍스트)</button>
             <button class="btn-share-img" onclick="shareMemoImage()">이미지 공유/저장</button>
             <button class="btn-cancel" onclick="cancelEdit()">작성 취소</button>
@@ -241,13 +265,7 @@
         </div>
     </div>
 
-    <div id="hidden-capture-box">
-        <div id="hidden-title"></div>
-        <div id="hidden-content"></div>
-        <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 10px; color: #999; font-size: 0.8rem;">
-            My Notepad Pro
-        </div>
-    </div>
+    <!-- 기존 #hidden-capture-box는 삭제했습니다 -->
 
     <div class="sidebar">
         <div class="sidebar-header">
@@ -449,26 +467,63 @@
         else { await navigator.clipboard.writeText(fullText); alert("복사되었습니다."); }
     }
 
+    /**
+     * 핵심 수정 부분: 이미지 공유/저장
+     */
     async function shareMemoImage() {
         const titleVal = document.getElementById('memo-title').value.trim();
-        const contentHTML = editor.innerHTML;
         const contentText = editor.innerText.trim();
         if(!contentText) return alert("공유할 내용이 없습니다.");
+
+        // 1. 캡처 대상 및 워터마크 영역 지정
+        const captureArea = document.getElementById('capture-area');
+        const watermark = document.getElementById('capture-watermark');
+        const notepad = document.getElementById('memo-content');
         
-        const captureBox = document.getElementById('hidden-capture-box');
-        document.getElementById('hidden-title').innerText = titleVal || "제목 없음";
-        document.getElementById('hidden-content').innerHTML = contentHTML;
+        // 2. 캡처 전 스타일 조정 (스크롤바 숨기기, 워터마크 보이기)
+        watermark.style.display = 'block';
+        notepad.classList.add('capturing'); // 스크롤바 감추는 CSS 클래스
+
+        // 3. 현재 테마의 배경색 가져오기
+        const bgColor = getComputedStyle(captureArea).backgroundColor;
         
+        // 버튼 등 캡처에서 제외할 요소는 HTML에 data-html2canvas-ignore="true" 속성 추가됨
+
         try {
-            const canvas = await html2canvas(captureBox, { backgroundColor: "#ffffff", scale: 2, logging: false, useCORS: true });
+            // 4. html2canvas 실행
+            const canvas = await html2canvas(captureArea, { 
+                backgroundColor: bgColor, // 현재 배경색 유지
+                scale: 2, // 고해상도
+                logging: false, 
+                useCORS: true,
+                allowTaint: true,
+                y: 0, // 최상단부터 캡처
+                scrollY: -window.scrollY // 현재 스크롤 위치 보정
+            });
+
             const imageData = canvas.toDataURL("image/png");
             const fileName = (titleVal || 'memo') + ".png";
+
+            // 5. 공유 또는 다운로드
             if (navigator.canShare && navigator.share) {
                 const blob = await (await fetch(imageData)).blob();
                 const file = new File([blob], fileName, { type: 'image/png' });
-                try { await navigator.share({ files: [file], title: titleVal }); } catch (e) { downloadImage(imageData, fileName); }
-            } else { downloadImage(imageData, fileName); }
-        } catch (err) { alert("이미지 생성 실패"); }
+                try { 
+                    await navigator.share({ files: [file], title: titleVal }); 
+                } catch (e) { 
+                    if(e.name !== 'AbortError') downloadImage(imageData, fileName); 
+                }
+            } else { 
+                downloadImage(imageData, fileName); 
+            }
+        } catch (err) { 
+            console.error(err);
+            alert("이미지 생성 실패"); 
+        } finally {
+            // 6. 캡처 후 스타일 원복
+            watermark.style.display = 'none';
+            notepad.classList.remove('capturing');
+        }
     }
 
     function downloadImage(data, filename) {
